@@ -47,3 +47,26 @@
 - **MAR**: KNN, MICE, or regression-based imputation
 - **MNAR**: Add missing category, missing indicator, or domain-specific solutions
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
