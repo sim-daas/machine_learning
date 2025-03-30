@@ -11,12 +11,12 @@ sklearn.set_config(transform_output="pandas")
 warnings.filterwarnings("ignore")
 
 
-df = pd.read_csv('')
+df = pd.read_csv('train.csv', index_col=0)
+df.sample(5)
 
-
-
-
-
+df.info()
+df.describe()
+df.corr(numeric_only=)
 
 
 
