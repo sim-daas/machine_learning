@@ -1,3 +1,4 @@
+from EDAPro import module
 import numpy as np
 import pandas as pd
 import seaborn as sns 
@@ -9,6 +10,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import skimpy as skim
+
 
 # Configuration
 pd.set_option("display.max_columns", None)
@@ -230,7 +233,8 @@ def generate_predictions(test_df, scaler, features, model):
 if __name__ == "__main__":
     # Load train data
     train_df = load_data('train.csv')
-    
+    skim.skim(train_df)
+    module.missing_info(train_df)
     # Engineer features
     train_df = engineer_features(train_df)
     
