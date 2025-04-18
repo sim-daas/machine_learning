@@ -155,7 +155,7 @@ def predict_and_submit(model_results, test_path='test.csv', submission_path='sub
     # Create submission DataFrame
     submission = pd.DataFrame({
         'price': predictions
-    }, index=test_df.index)
+    }, index=test_df_encoded.index)
     
     # Save to CSV
     submission.to_csv(submission_path)
@@ -165,13 +165,14 @@ def predict_and_submit(model_results, test_path='test.csv', submission_path='sub
 df = pd.read_csv('train.csv', index_col=0)
 df_cleaned = clean_car_data(df)
 df_encoded = encode_car_data(df_cleaned)
+df_encoded.isna().sum()
 
 df_encoded.head()
 df_encoded.columns
 
 data = train(df_encoded=df_encoded,
-             feature_cols=['model_year', 'milage', 'accident', 'clean_title'] + [col for col in df_encoded.columns if col.startswith('brand_') or col.startswith('fuel_type_')],
-             model=RandomForestRegressor(n_estimators=100, random_state=42),
+             feature_cols=['model_year', 'milage', 'accident', 'clean_title'] + [col for col in df_encoded.columns if col.startswith('fuel_type_') or col.startswith('brand_')],
+             model=CatBoostRegressor(iterations=100, learning_rate=0.1, random_seed=42, verbose=0),
              test_size=0.2,
              random_state=42)
 
@@ -185,5 +186,103 @@ print(f"Features used: {data['feature_cols']}")
 predict_and_submit(data,
                    test_path='test.csv',
                    submission_path='submission.csv')
+
+# Add model comparison loop to evaluate multiple models
+print("\n=== COMPARING MULTIPLE REGRESSION MODELS ===\n")
+
+# Dictionary of models to evaluate
+models = {
+    'Linear Regression': LinearRegression(),
+    'Ridge Regression': Ridge(alpha=1.0),
+    'Lasso Regression': Lasso(alpha=0.1),
+    'Decision Tree': DecisionTreeRegressor(max_depth=10, random_state=42),
+    'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
+    'AdaBoost': AdaBoostRegressor(random_state=42),
+    'Extra Trees': ExtraTreesRegressor(n_estimators=100, random_state=42),
+    'SVR': SVR(kernel='rbf', C=100, gamma=0.1, epsilon=.1),
+    'KNN': KNeighborsRegressor(n_neighbors=5),
+    'XGBoost': XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42),
+    'LightGBM': LGBMRegressor(n_estimators=100, random_state=42),
+    'CatBoost': CatBoostRegressor(iterations=100, learning_rate=0.1, random_seed=42, verbose=0)
+}
+
+# Feature columns to use
+feature_cols = ['model_year', 'milage', 'accident', 'clean_title'] + [col for col in df_encoded.columns if col.startswith('fuel_type_')]
+
+# Store results for comparison
+results = {}
+
+# Loop through each model
+for model_name, model in models.items():
+    print(f"\nTraining {model_name}...")
+    try:
+        # Train the model and get results
+        model_results = train(
+            df_encoded=df_encoded,
+            feature_cols=feature_cols,
+            model=model,
+            test_size=0.2,
+            random_state=42
+        )
+        
+        # Store results
+        results[model_name] = {
+            'rmse': model_results['rmse'],
+            'r2': model_results['r2'],
+            'model': model_results['model'],
+            'scaler': model_results['scaler']
+        }
+        
+    except Exception as e:
+        print(f"Error training {model_name}: {str(e)}")
+
+# Find the best model based on RMSE
+if results:
+    best_model = min(results.items(), key=lambda x: x[1]['rmse'])
+    print("\n=== BEST MODEL ===")
+    print(f"Model: {best_model[0]}")
+    print(f"RMSE: ${best_model[1]['rmse']:.2f}")
+    print(f"R² Score: {best_model[1]['r2']:.4f}")
+    
+    # Generate submission with the best model
+    print("\nGenerating submission with the best model...")
+best_model_results = {
+        'model': best_model[1]['model'],
+        'scaler': best_model[1]['scaler'],
+        'feature_cols': feature_cols
+    }
+predict_and_submit(
+        model_results=best_model_results,
+        test_path='test.csv',
+        submission_path='submission.csv'
+    )
+
+# Generate correlation plot for numerical columns
+print("\n=== CORRELATION ANALYSIS OF NUMERICAL FEATURES ===\n")
+df_encoded.accident.dtypes
+# Select only numerical columns
+numeric_columns = df_encoded.select_dtypes(include=['int64', 'float64']).columns
+correlation_matrix = df_encoded[numeric_columns].corr()
+
+# Create a correlation heatmap
+plt.figure(figsize=(15, 10))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, linewidths=0.5)
+plt.title('Correlation Matrix of Numerical Features')
+plt.tight_layout()
+plt.savefig('correlation_matrix.png')  # Save the figure to a file
+plt.show()  # Display the plot if running in an interactive environment
+
+# Print the correlation with target variable (price)
+if 'price' in numeric_columns:
+    price_correlation = correlation_matrix['price'].sort_values(ascending=False)
+    print("\nCorrelation with Price (Target Variable):")
+    print(price_correlation)
+
+
+
+
+
+
 
 
