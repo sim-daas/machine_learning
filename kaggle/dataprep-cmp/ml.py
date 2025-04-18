@@ -11,13 +11,10 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import skimpy as skim
-
-
 # Configuration
 pd.set_option("display.max_columns", None)
 sklearn.set_config(transform_output="pandas")
 warnings.filterwarnings("ignore")
-
 # Data Loading
 def load_data(file_path):
     return pd.read_csv(file_path, index_col=0)
